@@ -256,6 +256,7 @@ s32 Player_ActionHandler_9(Player* this, PlayState* play);
 s32 Player_ActionHandler_10(Player* this, PlayState* play);
 s32 Player_ActionHandler_11(Player* this, PlayState* play);
 s32 Player_ActionHandler_12(Player* this, PlayState* play);
+s32 func_808373F8(PlayState* play, Player* this, u16 sfxId); // 2S2H [Enhancement] Switch 2 Remake controls jump
 s32 Player_ActionHandler_13(Player* this, PlayState* play);
 s32 Player_ActionHandler_14(Player* this, PlayState* play);
 
@@ -5519,6 +5520,19 @@ s32 Player_TryActionHandlerList(PlayState* play, Player* this, s8* actionHandler
 
         if (!(this->stateFlags3 & PLAYER_STATE3_START_CHANGING_HELD_ITEM) &&
             (Player_UpperAction_ChangeHeldItem != this->upperActionFunc)) {
+            // #region 2S2H [Enhancement] Switch 2 Remake controls: dedicated jump button
+            // Checked for every on-foot handler list (standing, running, Z-targeting), not only the ones with
+            // PLAYER_ACTION_HANDLER_10, which normal standing and running do not use.
+            if ((actionHandlerList != sActionHandlerList11) && (actionHandlerList != sActionHandlerList12) &&
+                RemakeControls_ConsumeJump() && (this->transformation != PLAYER_FORM_GORON) &&
+                !(this->stateFlags1 & (PLAYER_STATE1_8000000 | PLAYER_STATE1_CARRYING_ACTOR)) &&
+                (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND)) {
+                // Same jump (distance, special long-jump floors, Deku hops) as the vanilla automatic ledge jump
+                func_808373F8(play, this, NA_SE_VO_LI_AUTO_JUMP);
+                return true;
+            }
+            // #endregion
+
             // Process all entries in the Action Handler List with a positive index
             while (*actionHandlerList >= 0) {
                 if (sActionHandlerFuncs[*actionHandlerList](this, play)) {
@@ -8374,15 +8388,6 @@ s32 func_80839A84(PlayState* play, Player* this) {
 }
 
 s32 Player_ActionHandler_10(Player* this, PlayState* play) {
-    // #region 2S2H [Enhancement] Switch 2 Remake controls: dedicated jump button
-    if (RemakeControls_ConsumeJump() && (this->transformation != PLAYER_FORM_GORON) &&
-        !(this->stateFlags1 & (PLAYER_STATE1_8000000 | PLAYER_STATE1_CARRYING_ACTOR)) &&
-        (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND)) {
-        // Same jump (distance, special long-jump floors, Deku hops) as the vanilla automatic ledge jump
-        func_808373F8(play, this, NA_SE_VO_LI_AUTO_JUMP);
-        return true;
-    }
-    // #endregion
     if (CHECK_BTN_ALL(sPlayerControlInput->press.button, BTN_A) && (play->roomCtx.curRoom.type != ROOM_TYPE_INDOORS) &&
         (sPlayerFloorType != FLOOR_TYPE_7) && (sPlayerFloorEffect != FLOOR_EFFECT_1)) {
         s32 controlStickDirection = this->controlStickDirections[this->controlStickDataIndex];

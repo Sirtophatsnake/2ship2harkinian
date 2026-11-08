@@ -49,6 +49,8 @@ extern TexturePtr gItemIcons[131];
 #define SPRINT_SPEED_MULTIPLIER 1.5f
 // Number of padmgr updates the ZL shield stays lowered after attacking / using an item
 #define SHIELD_DROP_FRAMES 12
+// Number of padmgr updates after releasing ZR before the bow aim is left, so the arrow is fired first
+#define EXIT_AIM_FRAMES 6
 
 namespace {
 
@@ -79,6 +81,9 @@ int sAPulse = 0;
 int sShieldDropFrames = 0;
 Actor* sAimTarget = nullptr;
 bool sAimZWasHeld = false;
+bool sAimZL = false;
+bool sZRWasHeld = false;
+int sExitAimFrames = 0;
 QuickSelectState sQS;
 
 const char* GetItemNameDE(u8 item) {
@@ -394,8 +399,12 @@ uint32_t TranslateGameplay(uint32_t raw, uint32_t pressed, uint32_t out, int8_t*
     if (raw & BTN_CUSTOM_REMAKE_R3) {
         out |= BTN_Z;
     }
-    if (raw & BTN_CUSTOM_REMAKE_MINUS) {
-        out |= BTN_L;
+    // - opens the pause menu on the map page, + on the item page
+    if (pressed & BTN_CUSTOM_REMAKE_MINUS) {
+        gPlayState->pauseCtx.pageIndex = PAUSE_MAP;
+        out |= BTN_START;
+    } else if (pressed & BTN_START) {
+        gPlayState->pauseCtx.pageIndex = PAUSE_ITEM;
     }
     // D-pad Right talks to Tatl
     if (raw & BTN_DRIGHT) {
@@ -486,10 +495,32 @@ uint32_t TranslateGameplay(uint32_t raw, uint32_t pressed, uint32_t out, int8_t*
         sJumpQueued = true;
     }
 
+    // First person aiming: ZL locks onto a target instead of the vanilla switch to Z-target aiming
+    bool firstPerson = (player != nullptr) && (player->stateFlags1 & PLAYER_STATE1_100000);
+    sAimZL = firstPerson && (raw & BTN_Z);
+    if (sAimZL) {
+        out &= ~BTN_Z;
+    }
+
+    // Bow: releasing ZR shoots, then leaves the aim (vanilla stays in first person until A is pressed)
+    bool zrHeld = (raw & BTN_CUSTOM_REMAKE_ZR) != 0;
+    if (firstPerson && sZRWasHeld && !zrHeld && (player->heldItemAction >= PLAYER_IA_BOW) &&
+        (player->heldItemAction <= PLAYER_IA_BOW_LIGHT)) {
+        sExitAimFrames = EXIT_AIM_FRAMES;
+    }
+    sZRWasHeld = zrHeld;
+    if (sExitAimFrames > 0) {
+        if (zrHeld || !firstPerson) {
+            sExitAimFrames = 0;
+        } else if (--sExitAimFrames < 2) {
+            out |= BTN_A; // "Return"
+        }
+    }
+
     return out;
 }
 
-uint32_t TranslateMenu(uint32_t raw, uint32_t out) {
+uint32_t TranslateMenu(uint32_t raw, uint32_t pressed, uint32_t out) {
     if (raw & BTN_CUSTOM_REMAKE_B) {
         out |= BTN_B;
     }
@@ -502,8 +533,9 @@ uint32_t TranslateMenu(uint32_t raw, uint32_t out) {
     if (raw & BTN_CUSTOM_REMAKE_ZR) {
         out |= BTN_CRIGHT; // equip to ZR
     }
-    if (raw & BTN_CUSTOM_REMAKE_MINUS) {
-        out |= BTN_L;
+    // - closes the pause menu again
+    if ((pressed & BTN_CUSTOM_REMAKE_MINUS) && (gPlayState != nullptr) && IS_PAUSED(&gPlayState->pauseCtx)) {
+        out |= BTN_START;
     }
     return out;
 }
@@ -585,7 +617,7 @@ extern "C" uint32_t RemakeControls_TranslateButtons(uint32_t raw, int8_t* stickX
         sBMode = BMode::None;
         sAWithheld = false;
         sSprinting = false;
-        return TranslateMenu(raw, out);
+        return TranslateMenu(raw, pressed, out);
     }
 
     if ((pressed & (BTN_CUSTOM_REMAKE_L | BTN_CUSTOM_REMAKE_R)) && CanOpenQuickSelect()) {
@@ -660,6 +692,8 @@ extern "C" void RemakeControls_AimAssist(void* playPtr, void* playerPtr, int32_t
     PlayState* play = (PlayState*)playPtr;
     Player* player = (Player*)playerPtr;
 
+    // ZL is taken away from the game while aiming in first person, see TranslateGameplay
+    zHeld = zHeld || sAimZL;
     if (!CVAR_REMAKE || !zHeld) {
         sAimTarget = nullptr;
         sAimZWasHeld = false;
