@@ -18,6 +18,7 @@
  */
 #include "RemakeControls.h"
 
+#include <algorithm>
 #include <chrono>
 #include <vector>
 #include <imgui.h>
@@ -803,7 +804,12 @@ void DrawSongList() {
 
     const float rowH = 22.0f * scale;
     const float pad = 10.0f * scale;
-    const float nameW = 170.0f * scale;
+    const float fontSize = 14.0f * scale;
+    float nameW = 150.0f * scale; // also fits the "no songs" text
+    for (const SongListEntry* song : songs) {
+        nameW = std::max(nameW, font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, song->name).x);
+    }
+    nameW += 12.0f * scale;
     const float noteR = 7.5f * scale;
     const float noteStep = noteR * 2.0f + 3.0f * scale;
     const float panelW = pad * 2.0f + nameW + 8 * noteStep;
@@ -816,7 +822,6 @@ void DrawSongList() {
     drawList->AddRect(ImVec2(x0, y0), ImVec2(x0 + panelW, y0 + panelH), IM_COL32(200, 190, 140, 120), 8.0f * scale,
                       0, 1.5f * scale);
 
-    const float fontSize = 14.0f * scale;
     if (songs.empty()) {
         drawList->AddText(font, fontSize, ImVec2(x0 + pad, y0 + pad), IM_COL32(230, 230, 230, 255),
                           "Noch keine Lieder gelernt");
