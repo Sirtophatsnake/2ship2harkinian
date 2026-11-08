@@ -72,6 +72,10 @@ jobs:
       run: |
         export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
         cmake --no-warn-unused-cli -H. -Bbuild-cmake -GNinja -DCMAKE_BUILD_TYPE:STRING=Release
+        # libultraship downloads stb_image.h from github.com without checking; refill it from a mirror if it is empty
+        if [ $(stat -c%s build-cmake/_deps/stb/stb_image.h 2>/dev/null || echo 0) -lt 100000 ]; then
+          curl -fsSL --retry 5 -o build-cmake/_deps/stb/stb_image.h https://cdn.jsdelivr.net/gh/nothings/stb@0bc88af4de5fb022db643c2d8e549a0927749354/stb_image.h
+        fi
         cmake --build build-cmake --config Release --target Generate2ShipOtr -j3
     - name: Upload 2ship.o2r
       uses: actions/upload-artifact@v7
@@ -131,6 +135,13 @@ jobs:
           curl -fsSL -o build-windows/mm/2ship.o2r https://raw.githubusercontent.com/${{ github.repository }}/windows-build/2ship.o2r
         fi
         ls -l build-windows/mm/2ship.o2r
+    - name: Prefill vcpkg downloads
+      # Files vcpkg would fetch from github.com URLs that time out; vcpkg reuses them when the SHA512 matches
+      shell: bash
+      run: |
+        if [ ! -f vcpkg/README.md ]; then rm -rf vcpkg; git clone --depth 1 https://github.com/Microsoft/vcpkg.git vcpkg; fi
+        mkdir -p vcpkg/downloads
+        cp .github/ci-downloads/*.patch vcpkg/downloads/
     - name: Build 2Ship
       env:
         VCPKG_ROOT: ${{github.workspace}}/vcpkg
@@ -141,6 +152,11 @@ jobs:
           $launcher = @("-DCMAKE_C_COMPILER_LAUNCHER=sccache", "-DCMAKE_CXX_COMPILER_LAUNCHER=sccache")
         }
         cmake -S . -B build-windows -G Ninja -DCMAKE_MAKE_PROGRAM=ninja -DCMAKE_BUILD_TYPE:STRING=Release @launcher
+        if ($LASTEXITCODE -ne 0) { exit 1 }
+        $stb = "build-windows/_deps/stb/stb_image.h"
+        if (-not (Test-Path $stb) -or (Get-Item $stb).Length -lt 100000) {
+          Invoke-WebRequest -Uri "https://cdn.jsdelivr.net/gh/nothings/stb@0bc88af4de5fb022db643c2d8e549a0927749354/stb_image.h" -OutFile $stb -MaximumRetryCount 5 -RetryIntervalSec 10
+        }
         cmake --build build-windows --config Release --parallel 10
 
         (cd build-windows && cpack)
