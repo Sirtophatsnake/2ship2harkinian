@@ -16,7 +16,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: out
       - run: |
-          cd out && ls -la
+          cd out && rm -rf debug && ls -la
           git init -q && git checkout -q -b windows-build
           git config user.name ci && git config user.email ci@example.com
           git add -A && git commit -qm "Windows build"
