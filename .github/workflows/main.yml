@@ -11,6 +11,8 @@ jobs:
 
   generate-2ship-otr:
     runs-on: ubuntu-22.04
+    # The asset step can break on runner/dependency changes; the Windows build then reuses the last published 2ship.o2r
+    continue-on-error: true
     steps:
     - name: Git Checkout
       uses: actions/checkout@v6
@@ -78,6 +80,7 @@ jobs:
 
   build-windows:
     needs: generate-2ship-otr
+    if: ${{ !cancelled() }}
     runs-on: windows-latest
     steps:
     - name: Install dependencies
@@ -111,10 +114,19 @@ jobs:
     - name: Configure Developer Command Prompt
       uses: ilammy/msvc-dev-cmd@v1
     - name: Download 2ship.o2r
+      continue-on-error: true
       uses: actions/download-artifact@v8
       with:
         name: 2ship.o2r
         path: build-windows/mm
+    - name: Fallback to last published 2ship.o2r
+      shell: bash
+      run: |
+        if [ ! -f build-windows/mm/2ship.o2r ]; then
+          mkdir -p build-windows/mm
+          curl -fsSL -o build-windows/mm/2ship.o2r https://raw.githubusercontent.com/${{ github.repository }}/windows-build/2ship.o2r
+        fi
+        ls -l build-windows/mm/2ship.o2r
     - name: Build 2Ship
       env:
         VCPKG_ROOT: ${{github.workspace}}/vcpkg
