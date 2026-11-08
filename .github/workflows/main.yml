@@ -44,7 +44,9 @@ jobs:
       run: |
         export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
         if [ ! -d "deps/SDL2-2.30.3" ]; then
-          wget https://github.com/libsdl-org/SDL/releases/download/release-2.30.3/SDL2-2.30.3.tar.gz
+          # libsdl.org first: GitHub release downloads can time out (504)
+          wget --tries=5 --waitretry=20 --retry-on-http-error=502,503,504 https://www.libsdl.org/release/SDL2-2.30.3.tar.gz ||
+            wget --tries=5 --waitretry=20 --retry-on-http-error=502,503,504 https://github.com/libsdl-org/SDL/releases/download/release-2.30.3/SDL2-2.30.3.tar.gz
           tar -xzf SDL2-2.30.3.tar.gz -C deps
         fi
         cd deps/SDL2-2.30.3
@@ -57,7 +59,7 @@ jobs:
         sudo apt-get remove libtinyxml2-dev
         export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
         if [ ! -d "deps/tinyxml2-10.0.0" ]; then
-          wget https://github.com/leethomason/tinyxml2/archive/refs/tags/10.0.0.tar.gz
+          wget --tries=5 --waitretry=20 --retry-on-http-error=502,503,504 https://github.com/leethomason/tinyxml2/archive/refs/tags/10.0.0.tar.gz
           tar -xzf 10.0.0.tar.gz -C deps
         fi
         cd deps/tinyxml2-10.0.0
@@ -92,6 +94,8 @@ jobs:
       with:
         submodules: true
     - name: Configure sccache
+      # Only a cache: if its download fails, build without it
+      continue-on-error: true
       uses: hendrikmuhs/ccache-action@v1.2.22
       with:
         variant: sccache
@@ -132,7 +136,11 @@ jobs:
         VCPKG_ROOT: ${{github.workspace}}/vcpkg
       run: |
         set $env:PATH="$env:USERPROFILE/.cargo/bin;$env:PATH"
-        cmake -S . -B build-windows -G Ninja -DCMAKE_MAKE_PROGRAM=ninja -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+        $launcher = @()
+        if (Get-Command sccache -ErrorAction SilentlyContinue) {
+          $launcher = @("-DCMAKE_C_COMPILER_LAUNCHER=sccache", "-DCMAKE_CXX_COMPILER_LAUNCHER=sccache")
+        }
+        cmake -S . -B build-windows -G Ninja -DCMAKE_MAKE_PROGRAM=ninja -DCMAKE_BUILD_TYPE:STRING=Release @launcher
         cmake --build build-windows --config Release --parallel 10
 
         (cd build-windows && cpack)
