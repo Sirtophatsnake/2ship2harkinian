@@ -7741,6 +7741,19 @@ s32 func_8083868C(PlayState* play, Player* this) {
     camera = (this->actor.id == ACTOR_PLAYER) ? Play_GetCamera(play, CAM_ID_MAIN)
                                               : Play_GetCamera(play, ((EnTest3*)this)->subCamId);
 
+    // #region 2S2H [Enhancement] Switch 2 Remake controls: aim the bow / hookshot over the shoulder.
+    // Link is drawn fully as soon as the camera is not at his head. Falls back to first person where the scene's
+    // camera setting has no over-the-shoulder mode (Camera_ChangeMode then returns CAM_MODE_NORMAL).
+    if (RemakeControls_IsThirdPersonAim() && (this->unk_AA5 == PLAYER_UNKAA5_3) && func_800B7118(this) &&
+        (this->transformation == PLAYER_FORM_HUMAN) && (this->actor.id == ACTOR_PLAYER)) {
+        s32 overShoulder = Camera_ChangeMode(camera, CAM_MODE_BOWARROWZ);
+
+        if (overShoulder != CAM_MODE_NORMAL) {
+            return overShoulder;
+        }
+    }
+    // #endregion
+
     return Camera_ChangeMode(camera, camMode);
 }
 

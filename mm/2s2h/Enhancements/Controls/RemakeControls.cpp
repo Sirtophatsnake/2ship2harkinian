@@ -82,6 +82,7 @@ int sShieldDropFrames = 0;
 Actor* sAimTarget = nullptr;
 bool sAimZWasHeld = false;
 bool sAimZL = false;
+bool sSongListOpen = false;
 bool sZRWasHeld = false;
 int sExitAimFrames = 0;
 QuickSelectState sQS;
@@ -542,6 +543,9 @@ uint32_t TranslateMenu(uint32_t raw, uint32_t pressed, uint32_t out) {
 
 uint32_t TranslateOcarina(uint32_t raw, uint32_t out) {
     out &= ~(BTN_A | BTN_B | BTN_CUP | BTN_CDOWN | BTN_CLEFT | BTN_CRIGHT);
+    // ZL shows the learned songs instead of bending the note
+    sSongListOpen = (raw & BTN_Z) != 0;
+    out &= ~BTN_Z;
     if (raw & BTN_CUSTOM_REMAKE_L) {
         out |= BTN_A; // D4
     }
@@ -730,6 +734,117 @@ extern "C" int32_t RemakeControls_IsAutoJumpDisabled(void) {
     return CVAR_REMAKE != 0;
 }
 
+extern "C" int32_t RemakeControls_IsThirdPersonAim(void) {
+    return CVAR_REMAKE != 0;
+}
+
+namespace {
+
+struct SongListEntry {
+    u8 song;      // OCARINA_SONG_*
+    u8 questItem; // QUEST_SONG_* that unlocks it
+    const char* name;
+};
+
+// ponytail: German names written by hand, check against the official German translation
+const SongListEntry sSongList[] = {
+    { OCARINA_SONG_TIME, QUEST_SONG_TIME, "Hymne der Zeit" },
+    { OCARINA_SONG_INVERTED_TIME, QUEST_SONG_TIME, "Umgekehrte Hymne der Zeit" },
+    { OCARINA_SONG_DOUBLE_TIME, QUEST_SONG_TIME, "Hymne der doppelten Zeit" },
+    { OCARINA_SONG_HEALING, QUEST_SONG_HEALING, "Lied der Befreiung" },
+    { OCARINA_SONG_EPONAS, QUEST_SONG_EPONA, "Eponas Lied" },
+    { OCARINA_SONG_SOARING, QUEST_SONG_SOARING, "Lied der Schwingen" },
+    { OCARINA_SONG_STORMS, QUEST_SONG_STORMS, "Hymne des Sturms" },
+    { OCARINA_SONG_SONATA, QUEST_SONG_SONATA, "Sonate des Erwachens" },
+    { OCARINA_SONG_GORON_LULLABY, QUEST_SONG_LULLABY, "Goronen-Wiegenlied" },
+    { OCARINA_SONG_NEW_WAVE, QUEST_SONG_BOSSA_NOVA, "Bossa Nova der Zoras" },
+    { OCARINA_SONG_ELEGY, QUEST_SONG_ELEGY, "Elegie der Leere" },
+    { OCARINA_SONG_OATH, QUEST_SONG_OATH, "Hymne des Himmels" },
+};
+
+// Remake button for each ocarina note (low to high: L, R, A, Y, X), see TranslateOcarina
+void GetNoteButton(u8 ocarinaBtn, const char** label, ImU32* color) {
+    switch (ocarinaBtn) {
+        case OCARINA_BTN_A:
+            *label = "L";
+            *color = IM_COL32(120, 160, 255, 255);
+            break;
+        case OCARINA_BTN_C_DOWN:
+            *label = "R";
+            *color = IM_COL32(120, 160, 255, 255);
+            break;
+        case OCARINA_BTN_C_RIGHT:
+            *label = "A";
+            *color = IM_COL32(235, 70, 70, 255);
+            break;
+        case OCARINA_BTN_C_LEFT:
+            *label = "Y";
+            *color = IM_COL32(70, 200, 90, 255);
+            break;
+        default:
+            *label = "X";
+            *color = IM_COL32(90, 140, 240, 255);
+            break;
+    }
+}
+
+void DrawSongList() {
+    ImGuiViewport* viewport = ImGui::GetMainViewport();
+    ImDrawList* drawList = ImGui::GetForegroundDrawList(viewport);
+    ImFont* font = ImGui::GetFont();
+    float scale = viewport->Size.y / 480.0f;
+
+    std::vector<const SongListEntry*> songs;
+    for (const SongListEntry& entry : sSongList) {
+        if (CHECK_QUEST_ITEM(entry.questItem)) {
+            songs.push_back(&entry);
+        }
+    }
+
+    const float rowH = 22.0f * scale;
+    const float pad = 10.0f * scale;
+    const float nameW = 170.0f * scale;
+    const float noteR = 7.5f * scale;
+    const float noteStep = noteR * 2.0f + 3.0f * scale;
+    const float panelW = pad * 2.0f + nameW + 8 * noteStep;
+    const float panelH = pad * 2.0f + rowH * (songs.empty() ? 1 : songs.size());
+    const float x0 = viewport->Pos.x + 20.0f * scale;
+    const float y0 = viewport->Pos.y + 60.0f * scale;
+
+    drawList->AddRectFilled(ImVec2(x0, y0), ImVec2(x0 + panelW, y0 + panelH), IM_COL32(12, 14, 24, 215),
+                            8.0f * scale);
+    drawList->AddRect(ImVec2(x0, y0), ImVec2(x0 + panelW, y0 + panelH), IM_COL32(200, 190, 140, 120), 8.0f * scale,
+                      0, 1.5f * scale);
+
+    const float fontSize = 14.0f * scale;
+    if (songs.empty()) {
+        drawList->AddText(font, fontSize, ImVec2(x0 + pad, y0 + pad), IM_COL32(230, 230, 230, 255),
+                          "Noch keine Lieder gelernt");
+        return;
+    }
+
+    for (size_t i = 0; i < songs.size(); i++) {
+        float y = y0 + pad + i * rowH;
+        drawList->AddText(font, fontSize, ImVec2(x0 + pad, y + (rowH - fontSize) * 0.5f),
+                          IM_COL32(255, 255, 255, 255), songs[i]->name);
+
+        const OcarinaSongButtons& buttons = gOcarinaSongButtons[songs[i]->song];
+        for (int n = 0; n < buttons.numButtons; n++) {
+            const char* label;
+            ImU32 color;
+            GetNoteButton(buttons.buttonIndex[n], &label, &color);
+            ImVec2 c(x0 + pad + nameW + noteR + n * noteStep, y + rowH * 0.5f);
+            drawList->AddCircleFilled(c, noteR, color);
+            float labelSize = 11.0f * scale;
+            ImVec2 dim = font->CalcTextSizeA(labelSize, FLT_MAX, 0.0f, label);
+            drawList->AddText(font, labelSize, ImVec2(c.x - dim.x * 0.5f, c.y - dim.y * 0.5f),
+                              IM_COL32(255, 255, 255, 255), label);
+        }
+    }
+}
+
+} // namespace
+
 extern "C" int32_t RemakeControls_ConsumeJump(void) {
     if (!CVAR_REMAKE) {
         return false;
@@ -740,6 +855,9 @@ extern "C" int32_t RemakeControls_ConsumeJump(void) {
 }
 
 void RemakeQuickSelectWindow::Draw() {
+    if (sSongListOpen && (gPlayState != nullptr) && sIsOcarinaInputEnabled && CVAR_REMAKE) {
+        DrawSongList();
+    }
     if (!sQS.open || (gPlayState == nullptr) || sQS.entries.empty()) {
         return;
     }

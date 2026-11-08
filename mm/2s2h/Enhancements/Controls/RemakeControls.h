@@ -41,6 +41,9 @@ void RemakeControls_AimAssist(void* play, void* player, int32_t zHeld);
 /** Returns true if the vanilla automatic ledge jump should not happen (jumping is done manually with X). */
 int32_t RemakeControls_IsAutoJumpDisabled(void);
 
+/** Returns true if the bow and hookshot are aimed over the shoulder (third person) instead of in first person. */
+int32_t RemakeControls_IsThirdPersonAim(void);
+
 #ifdef __cplusplus
 }
 #endif
