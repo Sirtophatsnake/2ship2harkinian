@@ -366,7 +366,7 @@ bool CanSprint(Player* player, int8_t stickX, int8_t stickY) {
         return false;
     }
     if (player->stateFlags1 & (PLAYER_STATE1_8000000 | PLAYER_STATE1_Z_TARGETING | PLAYER_STATE1_CARRYING_ACTOR |
-                               PLAYER_STATE1_100000 | PLAYER_STATE1_FRIENDLY_ACTOR_FOCUS)) {
+                               PLAYER_STATE1_100000 | PLAYER_STATE1_FRIENDLY_ACTOR_FOCUS | PLAYER_STATE1_800000)) {
         return false;
     }
     if ((stickX * stickX + stickY * stickY) < (30 * 30)) {
