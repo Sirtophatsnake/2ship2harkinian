@@ -166,6 +166,14 @@ OTRGlobals::OTRGlobals() {
         BTN_CUSTOM_OCARINA_DISABLE_SONGS,
         BTN_CUSTOM_OCARINA_PITCH_UP,
         BTN_CUSTOM_OCARINA_PITCH_DOWN,
+        BTN_CUSTOM_REMAKE_B,
+        BTN_CUSTOM_REMAKE_X,
+        BTN_CUSTOM_REMAKE_Y,
+        BTN_CUSTOM_REMAKE_L,
+        BTN_CUSTOM_REMAKE_R,
+        BTN_CUSTOM_REMAKE_ZR,
+        BTN_CUSTOM_REMAKE_R3,
+        BTN_CUSTOM_REMAKE_MINUS,
     }));
     context->InitControlDeck(controlDeck);
     context->InitResourceManager({ portArchivePath }, {}, 3, true);

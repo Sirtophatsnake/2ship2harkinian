@@ -40,6 +40,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "z64voice.h"
+#include "2s2h/Enhancements/Controls/RemakeControls.h"
 // extern FaultMgr gFaultMgr;
 
 #define PADMGR_RETRACE_MSG (1 << 0)
@@ -497,6 +498,14 @@ void PadMgr_UpdateInputs(void) {
         if ((input->cur.button & (BTN_DRIGHT | BTN_DLEFT)) == (BTN_DRIGHT | BTN_DLEFT)) {
             input->cur.button &= ~(BTN_DRIGHT | BTN_DLEFT);
         }
+
+        // #region 2S2H [Enhancement] Switch 2 Remake controls
+        if (i == 0) {
+            input->cur.button = RemakeControls_TranslateButtons(input->cur.button, &input->cur.stick_x,
+                                                                &input->cur.stick_y, &input->cur.right_stick_x,
+                                                                &input->cur.right_stick_y);
+        }
+        // #endregion
 
         // Calculate pressed and relative inputs
         diff = input->prev.button ^ input->cur.button;

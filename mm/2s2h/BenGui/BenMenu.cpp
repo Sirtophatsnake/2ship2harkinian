@@ -1086,6 +1086,12 @@ void BenMenu::AddEnhancements() {
     AddWidget(path, "Manual Jump", WIDGET_CVAR_CHECKBOX)
         .CVar("gEnhancements.Player.ManualJump")
         .Options(CheckboxOptions().Tooltip("Z + A to Jump and B while midair to Jump Attack."));
+    AddWidget(path, "Switch 2 Remake Controls", WIDGET_CVAR_CHECKBOX)
+        .CVar("gEnhancements.Controls.RemakeControls")
+        .Options(CheckboxOptions().Tooltip(
+            "Ocarina of Time (Switch 2) style controls. Y attack, X jump, hold A to sprint, B put away "
+            "(B + ZL shield), ZR item, hold L/R for Quick Select, D-pad Left Ocarina, Up mask, Down "
+            "transformation mask, Right Tatl. Map the 'Remake' buttons in the Input Editor."));
     AddWidget(path, "Dpad Equips", WIDGET_CVAR_CHECKBOX)
         .CVar("gEnhancements.Dpad.DpadEquips")
         .Options(CheckboxOptions().Tooltip("Allows you to equip items to your D-pad."));

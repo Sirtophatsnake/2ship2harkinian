@@ -52,6 +52,14 @@ void BenInputEditorWindow::InitElement() {
     addButtonName(BTN_CUSTOM_OCARINA_DISABLE_SONGS, "Disable Song Detection");
     addButtonName(BTN_CUSTOM_OCARINA_PITCH_UP, "Pitch Up");
     addButtonName(BTN_CUSTOM_OCARINA_PITCH_DOWN, "Pitch Down");
+    addButtonName(BTN_CUSTOM_REMAKE_B, "Remake B (Put Away / Shield)");
+    addButtonName(BTN_CUSTOM_REMAKE_X, "Remake X (Jump)");
+    addButtonName(BTN_CUSTOM_REMAKE_Y, "Remake Y (Attack)");
+    addButtonName(BTN_CUSTOM_REMAKE_L, "Remake L (Quick Select)");
+    addButtonName(BTN_CUSTOM_REMAKE_R, "Remake R (Quick Select)");
+    addButtonName(BTN_CUSTOM_REMAKE_ZR, "Remake ZR (Use Item)");
+    addButtonName(BTN_CUSTOM_REMAKE_R3, "Remake R3 (Reset Camera)");
+    addButtonName(BTN_CUSTOM_REMAKE_MINUS, "Remake - (Map)");
     addButtonName(0, "None");
 }
 
@@ -1422,6 +1430,27 @@ void BenInputEditorWindow::DrawPortTabContents(uint8_t portIndex) {
 
     if (ImGui::CollapsingHeader("LEDs")) {
         DrawLEDSection(portIndex);
+    }
+
+    if (ImGui::CollapsingHeader("Switch 2 Remake Controls")) {
+        bool remakeEnabled = CVarGetInteger("gEnhancements.Controls.RemakeControls", 0);
+        if (ImGui::Checkbox("Enable Switch 2 Remake Controls", &remakeEnabled)) {
+            CVarSetInteger("gEnhancements.Controls.RemakeControls", remakeEnabled);
+            Ship::Context::GetRawInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+        }
+        UIWidgets::Tooltip("Ocarina of Time (Switch 2) style controls: Y attack, X jump, hold A to sprint, ZR item, "
+                           "hold L/R for Quick Select, D-pad Left Ocarina, Up mask, Down transformation mask, "
+                           "Right Tatl.");
+        if (remakeEnabled) {
+            DrawButtonLine("B (Put Away / Shield)##RemakeB", portIndex, BTN_CUSTOM_REMAKE_B);
+            DrawButtonLine("X (Jump)##RemakeX", portIndex, BTN_CUSTOM_REMAKE_X);
+            DrawButtonLine("Y (Attack)##RemakeY", portIndex, BTN_CUSTOM_REMAKE_Y);
+            DrawButtonLine("L (Quick Select)##RemakeL", portIndex, BTN_CUSTOM_REMAKE_L);
+            DrawButtonLine("R (Quick Select)##RemakeR", portIndex, BTN_CUSTOM_REMAKE_R);
+            DrawButtonLine("ZR (Use Item)##RemakeZR", portIndex, BTN_CUSTOM_REMAKE_ZR);
+            DrawButtonLine("R3 (Reset Camera)##RemakeR3", portIndex, BTN_CUSTOM_REMAKE_R3);
+            DrawButtonLine("- (Map)##RemakeMinus", portIndex, BTN_CUSTOM_REMAKE_MINUS);
+        }
     }
 
     if (ImGui::CollapsingHeader("Custom Ocarina Controls")) {

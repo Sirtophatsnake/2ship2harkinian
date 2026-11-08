@@ -25,6 +25,7 @@
 #include "Enhancements/Trackers/ItemTracker/ItemTracker.h"
 #include "Enhancements/Trackers/ItemTracker/ItemTrackerSettings.h"
 #include "Enhancements/Trackers/DisplayOverlay.h"
+#include "Enhancements/Controls/RemakeControls.h"
 #include "Enhancements/Trackers//TimeSplits/Timesplits.h"
 #include "Enhancements/Trackers/TimeSplits/TimesplitsSettings.h"
 #include "BenMenu.h"
@@ -65,6 +66,7 @@ std::shared_ptr<Rando::CheckTracker::SettingsWindow> mRandoCheckTrackerSettingsW
 std::shared_ptr<ItemTrackerWindow> mItemTrackerWindow;
 std::shared_ptr<ItemTrackerSettingsWindow> mItemTrackerSettingsWindow;
 std::shared_ptr<DisplayOverlayWindow> mDisplayOverlayWindow;
+std::shared_ptr<RemakeQuickSelectWindow> mRemakeQuickSelectWindow;
 std::shared_ptr<TimesplitsWindow> mTimesplitsWindow;
 std::shared_ptr<TimesplitsSettingsWindow> mTimesplitsSettingsWindow;
 std::shared_ptr<InputViewer> mInputViewer;
@@ -157,6 +159,10 @@ void SetupGuiElements() {
 
     mDisplayOverlayWindow = std::make_shared<DisplayOverlayWindow>("gWindows.DisplayOverlay", "Display Overlay");
     gui->AddGuiWindow(mDisplayOverlayWindow);
+
+    mRemakeQuickSelectWindow =
+        std::make_shared<RemakeQuickSelectWindow>("gWindows.RemakeQuickSelect", "Remake Quick Select");
+    gui->AddGuiWindow(mRemakeQuickSelectWindow);
 
     mTimesplitsWindow = std::make_shared<TimesplitsWindow>("gWindows.Timesplits", "Time Splits Window");
     gui->AddGuiWindow(mTimesplitsWindow);

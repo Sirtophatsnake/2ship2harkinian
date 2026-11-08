@@ -47,6 +47,7 @@
 
 #include "2s2h/BenPort.h"
 #include "2s2h/GameInteractor/GameInteractor.h"
+#include "2s2h/Enhancements/Controls/RemakeControls.h"
 #include "2s2h/CustomMessage/CustomMessage.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
@@ -8371,6 +8372,18 @@ s32 func_80839A84(PlayState* play, Player* this) {
 }
 
 s32 Player_ActionHandler_10(Player* this, PlayState* play) {
+    // #region 2S2H [Enhancement] Switch 2 Remake controls: dedicated jump button
+    if (RemakeControls_ConsumeJump() && (this->transformation != PLAYER_FORM_GORON) &&
+        !(this->stateFlags1 & (PLAYER_STATE1_8000000 | PLAYER_STATE1_CARRYING_ACTOR)) &&
+        (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND)) {
+        if (this->transformation == PLAYER_FORM_ZORA) {
+            func_808395F0(play, this, PLAYER_MWA_JUMPSLASH_START, 5.0f, 5.0f);
+        } else {
+            func_80834DB8(this, &gPlayerAnim_link_normal_jump, REG(69) / 100.0f, play);
+        }
+        return true;
+    }
+    // #endregion
     if (CHECK_BTN_ALL(sPlayerControlInput->press.button, BTN_A) && (play->roomCtx.curRoom.type != ROOM_TYPE_INDOORS) &&
         (sPlayerFloorType != FLOOR_TYPE_7) && (sPlayerFloorEffect != FLOOR_EFFECT_1)) {
         s32 controlStickDirection = this->controlStickDirections[this->controlStickDataIndex];
