@@ -77,6 +77,8 @@ bool sSprinting = false;
 int sAHoldFrames = 0;
 int sAPulse = 0;
 int sShieldDropFrames = 0;
+Actor* sAimTarget = nullptr;
+bool sAimZWasHeld = false;
 QuickSelectState sQS;
 
 const char* GetItemNameDE(u8 item) {
@@ -465,7 +467,7 @@ uint32_t TranslateGameplay(uint32_t raw, uint32_t pressed, uint32_t out, int8_t*
     // ZL: targeting raises the shield (human / Fierce Deity). It is lowered briefly to attack, use items or jump.
     bool shieldForm = (player != nullptr) && ((player->transformation == PLAYER_FORM_HUMAN) ||
                                               (player->transformation == PLAYER_FORM_FIERCE_DEITY));
-    if (shieldForm && (raw & BTN_Z)) {
+    if (shieldForm && (raw & BTN_Z) && !(player->stateFlags1 & PLAYER_STATE1_100000)) {
         if ((raw & (BTN_CUSTOM_REMAKE_Y | BTN_CUSTOM_REMAKE_ZR)) ||
             (pressed & (BTN_A | BTN_CUSTOM_REMAKE_X | BTN_DPAD))) {
             sShieldDropFrames = SHIELD_DROP_FRAMES;
@@ -598,6 +600,96 @@ extern "C" uint32_t RemakeControls_TranslateButtons(uint32_t raw, int8_t* stickX
     }
 
     return TranslateGameplay(raw, pressed, out, stickX, stickY);
+}
+
+static bool ActorStillExists(PlayState* play, Actor* target) {
+    for (s32 cat = 0; cat < ACTORCAT_MAX; cat++) {
+        for (Actor* actor = play->actorCtx.actorLists[cat].first; actor != nullptr; actor = actor->next) {
+            if (actor == target) {
+                return actor->update != nullptr;
+            }
+        }
+    }
+    return false;
+}
+
+static Vec3f GetAimOrigin(Player* player) {
+    Vec3f origin;
+    origin.x = player->actor.world.pos.x;
+    origin.y = player->bodyPartsPos[PLAYER_BODYPART_HEAD].y + 3.0f;
+    origin.z = player->actor.world.pos.z;
+    return origin;
+}
+
+static Actor* FindAimTarget(PlayState* play, Player* player) {
+    Vec3f origin = GetAimOrigin(player);
+    Actor* best = nullptr;
+    s32 bestScore = 0x7FFFFFFF;
+
+    for (s32 cat = 0; cat < ACTORCAT_MAX; cat++) {
+        if (cat == ACTORCAT_PLAYER) {
+            continue;
+        }
+        for (Actor* actor = play->actorCtx.actorLists[cat].first; actor != nullptr; actor = actor->next) {
+            if ((actor->update == nullptr) || !(actor->flags & ACTOR_FLAG_ATTENTION_ENABLED) ||
+                (actor->draw == nullptr)) {
+                continue;
+            }
+            f32 dist = Math_Vec3f_DistXYZ(&origin, &actor->focus.pos);
+            if ((dist < 20.0f) || (dist > 2000.0f)) {
+                continue;
+            }
+            s16 yawDiff = (s16)(Math_Vec3f_Yaw(&origin, &actor->focus.pos) - player->actor.focus.rot.y);
+            s16 pitchDiff = (s16)(Math_Vec3f_Pitch(&origin, &actor->focus.pos) - player->actor.focus.rot.x);
+            s32 angle = ABS_ALT(yawDiff) + ABS_ALT(pitchDiff);
+            // Only things roughly in front of the crosshair
+            if ((ABS_ALT(yawDiff) > 0x2000) || (ABS_ALT(pitchDiff) > 0x1800)) {
+                continue;
+            }
+            s32 score = angle + (s32)(dist * 2.0f);
+            if (score < bestScore) {
+                bestScore = score;
+                best = actor;
+            }
+        }
+    }
+    return best;
+}
+
+extern "C" void RemakeControls_AimAssist(void* playPtr, void* playerPtr, int32_t zHeld) {
+    PlayState* play = (PlayState*)playPtr;
+    Player* player = (Player*)playerPtr;
+
+    if (!CVAR_REMAKE || !zHeld) {
+        sAimTarget = nullptr;
+        sAimZWasHeld = false;
+        return;
+    }
+
+    if (!sAimZWasHeld) {
+        sAimTarget = FindAimTarget(play, player);
+        if (sAimTarget != nullptr) {
+            Audio_PlaySfx(NA_SE_SY_LOCK_ON);
+        }
+    }
+    sAimZWasHeld = true;
+
+    if ((sAimTarget == nullptr) || !ActorStillExists(play, sAimTarget)) {
+        sAimTarget = nullptr;
+        return;
+    }
+
+    Vec3f origin = GetAimOrigin(player);
+    s16 yawTarget = Math_Vec3f_Yaw(&origin, &sAimTarget->focus.pos);
+    s16 pitchTarget = Math_Vec3f_Pitch(&origin, &sAimTarget->focus.pos);
+
+    // Keep the aim inside the range first person aiming allows
+    s16 relYaw = CLAMP((s16)(yawTarget - player->actor.shape.rot.y), -0x4AAA, 0x4AAA);
+    yawTarget = relYaw + player->actor.shape.rot.y;
+    pitchTarget = CLAMP(pitchTarget, -0x36B0, 0x36B0);
+
+    Math_SmoothStepToS(&player->actor.focus.rot.y, yawTarget, 2, 0x2000, 0);
+    Math_SmoothStepToS(&player->actor.focus.rot.x, pitchTarget, 2, 0x2000, 0);
 }
 
 extern "C" int32_t RemakeControls_IsAutoJumpDisabled(void) {

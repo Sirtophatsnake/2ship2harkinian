@@ -13599,6 +13599,10 @@ s32 Ship_HandleFirstPersonAiming(PlayState* play, Player* this, s32 arg2) {
         var_s0 += temp3;
 
         this->actor.focus.rot.y = CLAMP(var_s0 + gyroX, -0x4AAA, 0x4AAA) + this->actor.shape.rot.y;
+
+        // #region 2S2H [Enhancement] Switch 2 Remake controls: ZL while aiming locks the aim onto a target
+        RemakeControls_AimAssist(play, this, CHECK_BTN_ALL(sPlayerControlInput->cur.button, BTN_Z));
+        // #endregion
     }
 
     bool playerMovementLocked = (this->actionFunc == Player_Action_52) || // Riding on Epona

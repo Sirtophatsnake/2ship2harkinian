@@ -2,6 +2,8 @@ name: generate-builds
 on:
   push:
   workflow_dispatch:
+permissions:
+  contents: write
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -131,6 +133,14 @@ jobs:
       with:
         name: 2ship-windows
         path: 2ship-windows
+    - name: Publish build to windows-build branch
+      shell: bash
+      run: |
+        cd 2ship-windows && rm -rf debug
+        git init -q && git checkout -q -b windows-build
+        git config user.name ci && git config user.email ci@example.com
+        git add -A && git commit -qm "Windows build ${{ github.sha }}"
+        git push -f https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} windows-build
     - name: Save Cache VCPKG folder
       if: ${{ github.ref_name == github.event.repository.default_branch }}
       uses: actions/cache/save@v5

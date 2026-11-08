@@ -32,6 +32,12 @@ uint32_t RemakeControls_TranslateButtons(uint32_t buttons, int8_t* stickX, int8_
 /** Returns true (once) if the jump button was pressed for the current player update. */
 int32_t RemakeControls_ConsumeJump(void);
 
+/**
+ * While aiming in first person with a weapon (bow, hookshot, ...): holding ZL locks the aim onto the closest
+ * targetable actor in front of Link. play / player are PlayState* / Player*.
+ */
+void RemakeControls_AimAssist(void* play, void* player, int32_t zHeld);
+
 /** Returns true if the vanilla automatic ledge jump should not happen (jumping is done manually with X). */
 int32_t RemakeControls_IsAutoJumpDisabled(void);
 
