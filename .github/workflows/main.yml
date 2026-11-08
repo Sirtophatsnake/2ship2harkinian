@@ -1,6 +1,7 @@
 name: generate-builds
 on:
   push:
+    branches-ignore: [deliver]
   workflow_dispatch:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

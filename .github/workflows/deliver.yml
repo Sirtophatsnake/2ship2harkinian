@@ -1,0 +1,23 @@
+name: deliver-build
+on:
+  push:
+    branches: [deliver]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  deliver:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: 2ship-windows
+          run-id: 42458264127
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: out
+      - run: |
+          cd out && ls -la
+          git init -q && git checkout -q -b windows-build
+          git config user.name ci && git config user.email ci@example.com
+          git add -A && git commit -qm "Windows build"
+          git push -f https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} windows-build
