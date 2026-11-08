@@ -32,6 +32,9 @@ uint32_t RemakeControls_TranslateButtons(uint32_t buttons, int8_t* stickX, int8_
 /** Returns true (once) if the jump button was pressed for the current player update. */
 int32_t RemakeControls_ConsumeJump(void);
 
+/** Returns true if the vanilla automatic ledge jump should not happen (jumping is done manually with X). */
+int32_t RemakeControls_IsAutoJumpDisabled(void);
+
 #ifdef __cplusplus
 }
 #endif

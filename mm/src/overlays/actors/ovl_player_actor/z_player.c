@@ -7663,7 +7663,9 @@ void func_8083827C(Player* this, PlayState* play) {
             if (!(this->stateFlags1 & PLAYER_STATE1_8000000)) {
                 if ((sPrevFloorProperty != FLOOR_PROPERTY_6) && (sPrevFloorProperty != FLOOR_PROPERTY_9) &&
                     (sPlayerYDistToFloor > 20.0f) && (this->meleeWeaponState == PLAYER_MELEE_WEAPON_STATE_0)) {
-                    if ((ABS_ALT(temp_t0) < 0x2000) && (this->speedXZ > 3.0f)) {
+                    // 2S2H [Enhancement] Switch 2 Remake controls: no automatic ledge jump, jump with X instead
+                    if ((ABS_ALT(temp_t0) < 0x2000) && (this->speedXZ > 3.0f) &&
+                        !RemakeControls_IsAutoJumpDisabled()) {
                         if (!(this->stateFlags1 & PLAYER_STATE1_CARRYING_ACTOR)) {
                             if (((this->transformation == PLAYER_FORM_ZORA) &&
                                  CHECK_BTN_ALL(sPlayerControlInput->cur.button, BTN_A)) ||
@@ -8376,11 +8378,8 @@ s32 Player_ActionHandler_10(Player* this, PlayState* play) {
     if (RemakeControls_ConsumeJump() && (this->transformation != PLAYER_FORM_GORON) &&
         !(this->stateFlags1 & (PLAYER_STATE1_8000000 | PLAYER_STATE1_CARRYING_ACTOR)) &&
         (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND)) {
-        if (this->transformation == PLAYER_FORM_ZORA) {
-            func_808395F0(play, this, PLAYER_MWA_JUMPSLASH_START, 5.0f, 5.0f);
-        } else {
-            func_80834DB8(this, &gPlayerAnim_link_normal_jump, REG(69) / 100.0f, play);
-        }
+        // Same jump (distance, special long-jump floors, Deku hops) as the vanilla automatic ledge jump
+        func_808373F8(play, this, NA_SE_VO_LI_AUTO_JUMP);
         return true;
     }
     // #endregion

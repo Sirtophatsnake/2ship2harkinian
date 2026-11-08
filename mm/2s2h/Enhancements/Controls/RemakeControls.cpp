@@ -4,7 +4,8 @@
  * Recreates the control scheme of "The Legend of Zelda: Ocarina of Time" (Nintendo Switch 2, 2026) in 2Ship:
  *   Y  = Attack (N64 B)                     X  = Jump
  *   A  = Action, hold A while running = Sprint
- *   B  = Put away / cancel, B + ZL = Shield ZL = Target (N64 Z)
+ *   B  = Put away / cancel        ZL = Target + Shield (N64 Z + R)
+ *   No automatic ledge jumps: X does the same jump the game used to do automatically
  *   ZR = Use the one equipped item (N64 C-Right)
  *   hold L or R = horizontal Quick Select bar (game pauses, release to equip to ZR)
  *   D-pad Left = Ocarina, Up = assigned mask, Down = assigned transformation mask, Right = Tatl (N64 C-Up)
@@ -46,6 +47,8 @@ extern TexturePtr gItemIcons[131];
 // Number of padmgr updates A must be held (while running) before sprinting instead of rolling
 #define SPRINT_HOLD_FRAMES 6
 #define SPRINT_SPEED_MULTIPLIER 1.5f
+// Number of padmgr updates the ZL shield stays lowered after attacking / using an item
+#define SHIELD_DROP_FRAMES 12
 
 namespace {
 
@@ -73,6 +76,7 @@ bool sAWithheld = false;
 bool sSprinting = false;
 int sAHoldFrames = 0;
 int sAPulse = 0;
+int sShieldDropFrames = 0;
 QuickSelectState sQS;
 
 const char* GetItemNameDE(u8 item) {
@@ -458,6 +462,23 @@ uint32_t TranslateGameplay(uint32_t raw, uint32_t pressed, uint32_t out, int8_t*
         out |= BTN_A;
     }
 
+    // ZL: targeting raises the shield (human / Fierce Deity). It is lowered briefly to attack, use items or jump.
+    bool shieldForm = (player != nullptr) && ((player->transformation == PLAYER_FORM_HUMAN) ||
+                                              (player->transformation == PLAYER_FORM_FIERCE_DEITY));
+    if (shieldForm && (raw & BTN_Z)) {
+        if ((raw & (BTN_CUSTOM_REMAKE_Y | BTN_CUSTOM_REMAKE_ZR)) ||
+            (pressed & (BTN_A | BTN_CUSTOM_REMAKE_X | BTN_DPAD))) {
+            sShieldDropFrames = SHIELD_DROP_FRAMES;
+        }
+        if (sShieldDropFrames > 0) {
+            sShieldDropFrames--;
+        } else {
+            out |= BTN_R;
+        }
+    } else {
+        sShieldDropFrames = 0;
+    }
+
     // X: jump, consumed by the player actor
     if (pressed & BTN_CUSTOM_REMAKE_X) {
         sJumpQueued = true;
@@ -577,6 +598,10 @@ extern "C" uint32_t RemakeControls_TranslateButtons(uint32_t raw, int8_t* stickX
     }
 
     return TranslateGameplay(raw, pressed, out, stickX, stickY);
+}
+
+extern "C" int32_t RemakeControls_IsAutoJumpDisabled(void) {
+    return CVAR_REMAKE != 0;
 }
 
 extern "C" int32_t RemakeControls_ConsumeJump(void) {
