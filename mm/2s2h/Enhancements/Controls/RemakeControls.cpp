@@ -72,6 +72,7 @@ struct QuickSelectState {
 
 uint32_t sPrevRaw = 0;
 uint32_t sSuppressUntilReleased = 0;
+bool sQuestLogOpen = false;
 BMode sBMode = BMode::None;
 bool sJumpQueued = false;
 bool sJumpThisFrame = false;
@@ -523,6 +524,21 @@ uint32_t TranslateGameplay(uint32_t raw, uint32_t pressed, uint32_t out, int8_t*
 }
 
 uint32_t TranslateMenu(uint32_t raw, uint32_t pressed, uint32_t out) {
+    // X in the pause menu opens the quest log, X or B closes it. The game gets no buttons while it is open.
+    bool pauseIdle = (gPlayState != nullptr) && (gPlayState->pauseCtx.state == PAUSE_STATE_MAIN);
+    if (!pauseIdle) {
+        sQuestLogOpen = false;
+    } else if (sQuestLogOpen) {
+        if (pressed & (BTN_CUSTOM_REMAKE_X | BTN_CUSTOM_REMAKE_B)) {
+            sQuestLogOpen = false;
+            sSuppressUntilReleased |= raw & BTN_CUSTOM_REMAKE_B; // don't let the closing B leave the pause menu
+        }
+        return 0;
+    } else if ((pressed & BTN_CUSTOM_REMAKE_X) && (gPlayState->pauseCtx.mainState == PAUSE_MAIN_STATE_IDLE)) {
+        sQuestLogOpen = true;
+        return 0;
+    }
+
     if (raw & BTN_CUSTOM_REMAKE_B) {
         out |= BTN_B;
     }
@@ -859,9 +875,14 @@ extern "C" int32_t RemakeControls_ConsumeJump(void) {
     return jump;
 }
 
+void QuestLog_Draw(); // QuestLog.cpp
+
 void RemakeQuickSelectWindow::Draw() {
     if (sSongListOpen && (gPlayState != nullptr) && sIsOcarinaInputEnabled && CVAR_REMAKE) {
         DrawSongList();
+    }
+    if (sQuestLogOpen && CVAR_REMAKE) {
+        QuestLog_Draw();
     }
     if (!sQS.open || (gPlayState == nullptr) || sQS.entries.empty()) {
         return;
