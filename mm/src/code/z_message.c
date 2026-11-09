@@ -5709,7 +5709,11 @@ void Message_Update(PlayState* play) {
 
         case MSGMODE_TEXT_DISPLAYING:
             if (msgCtx->textBoxType != TEXTBOX_TYPE_4) {
-                if (CHECK_BTN_ALL(input->press.button, BTN_B) && !msgCtx->textUnskippable) {
+                // 2S2H [Enhancement] Instant Text Skip: A also jumps straight to the end of the textbox like B
+                if ((CHECK_BTN_ALL(input->press.button, BTN_B) ||
+                     (CVarGetInteger("gEnhancements.Dialogue.InstantSkip", 0) &&
+                      CHECK_BTN_ALL(input->press.button, BTN_A))) &&
+                    !msgCtx->textUnskippable) {
                     msgCtx->textboxSkipped = true;
                     msgCtx->textDrawPos = msgCtx->decodedTextLen;
                 } else if (CHECK_BTN_ALL(input->press.button, BTN_A) && !msgCtx->textUnskippable) {

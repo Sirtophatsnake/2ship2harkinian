@@ -1605,6 +1605,10 @@ void BenMenu::AddEnhancements() {
         .CVar("gEnhancements.Dialogue.FastText")
         .Options(
             CheckboxOptions().Tooltip("Speeds up text rendering, and enables holding of B progress to next message."));
+    AddWidget(path, "Instant Text Skip", WIDGET_CVAR_CHECKBOX)
+        .CVar("gEnhancements.Dialogue.InstantSkip")
+        .Options(CheckboxOptions().Tooltip(
+            "Pressing A while text is still appearing shows the whole textbox at once, the next press continues."));
     AddWidget(path, "Auto Bombers' Code", WIDGET_CVAR_CHECKBOX)
         .CVar("gEnhancements.Dialogue.AutoBombersCode")
         .Options(CheckboxOptions().Tooltip("Automatically fill in the Bombers' code once you've got the notebook."));
