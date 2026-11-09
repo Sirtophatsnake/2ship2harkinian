@@ -445,12 +445,15 @@ uint32_t TranslateGameplay(uint32_t raw, uint32_t pressed, uint32_t out, int8_t*
         sBMode = BMode::None;
     }
 
-    // A: tap = action/roll, hold while running = sprint
+    // A while running: roll right away on the press, keep holding to sprint after the roll
     out &= ~BTN_A;
     if (pressed & BTN_A) {
         sAWithheld = CanSprint(player, *stickX, *stickY);
         sAHoldFrames = 0;
         sSprinting = false;
+        if (sAWithheld) {
+            sAPulse = 2; // one short A so Link rolls, holding A does not roll again
+        }
     }
     if (raw & BTN_A) {
         if (sAWithheld) {
@@ -461,9 +464,6 @@ uint32_t TranslateGameplay(uint32_t raw, uint32_t pressed, uint32_t out, int8_t*
             out |= BTN_A;
         }
     } else {
-        if (sAWithheld && !sSprinting) {
-            sAPulse = 2; // short tap -> send A so Link rolls
-        }
         sAWithheld = false;
         sSprinting = false;
         sAHoldFrames = 0;
