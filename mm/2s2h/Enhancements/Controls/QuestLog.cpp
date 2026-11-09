@@ -8,6 +8,8 @@
 #include <cfloat>
 #include <string>
 #include <vector>
+#include <string>
+#include <vector>
 #include <imgui.h>
 
 extern "C" {
@@ -17,7 +19,7 @@ extern "C" {
 
 namespace {
 
-enum class Check { Quest, Item };
+enum class Check { Quest, Item, Bottle };
 
 struct QuestStep {
     Check type;
@@ -35,6 +37,14 @@ bool StepDone(const QuestStep& step) {
     if (step.type == Check::Quest) {
         return CHECK_QUEST_ITEM(step.id) != 0;
     }
+    if (step.type == Check::Bottle) {
+        for (int32_t slot = SLOT_BOTTLE_1; slot <= SLOT_BOTTLE_6; slot++) {
+            if (gSaveContext.save.saveInfo.inventory.items[slot] != ITEM_NONE) {
+                return true;
+            }
+        }
+        return false;
+    }
     return INV_CONTENT(step.id) == step.id;
 }
 
@@ -51,9 +61,14 @@ const std::vector<QuestRegion> sRegions = {
     { "S\xC3\xBC""dlicher Sumpf (Waldtempel)",
       {
           { Check::Item, ITEM_MASK_DEKU, "Deku-Maske", "Bekommst du mit dem Lied der Befreiung." },
+          { Check::Bottle, 0, "Hexe Koume finden und heilen (erste Flasche)",
+            "Koume ist die Hexe, die im Sumpf die Bootstour macht. Sie liegt verletzt im Wald der Geheimnisse, der Eingang "
+            "ist beim Hexenladen im S\xC3\xBC""dlichen Sumpf. Folg dort dem Affen zu ihr. Danach im Hexenladen mit ihrer "
+            "Schwester Kotake reden: Sie schenkt dir eine Flasche mit rotem Elixier, kaufen musst du nichts. Das "
+            "Elixier zu Koume bringen." },
           { Check::Quest, QUEST_SONG_SONATA, "Sonate des Erwachens lernen",
-            "S\xC3\xBC""dlicher Sumpf: Im Hexenladen im Wald Koume finden, rotes Elixier von Kotake holen, Koume heilen, dann "
-            "mit dem Boot zum Deku-Palast. Als Deku durch die G\xC3\xA4""rten zum gefangenen Affen, er bringt dir die Sonate "
+            "Im Touristenzentrum im Sumpf die Bootstour mit Koume machen, damit kommst du weiter in den Sumpf bis zum "
+            "Deku-Palast. Als Deku durch die G\xC3\xA4""rten zum gefangenen Affen schleichen, er bringt dir die Sonate "
             "bei." },
           { Check::Item, ITEM_BOW, "Bogen (Waldtempel)",
             "Auf der Deku-Blume vor dem Waldtempel die Sonate spielen, im Tempel gibt es den Bogen." },
