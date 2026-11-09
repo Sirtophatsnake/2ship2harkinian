@@ -175,8 +175,20 @@ void QuestLog_Draw() {
                                           : (isNext ? IM_COL32(255, 225, 100, 255) : IM_COL32(230, 230, 230, 255)),
                           0, nullptr, head });
         if (next != nullptr && (isNext || r + 1 == sRegions.size())) {
-            lines.push_back({ textSize, IM_COL32(255, 255, 255, 255), pad, nullptr, std::string("> ") + next->title });
-            lines.push_back({ textSize, IM_COL32(190, 190, 200, 255), pad * 2.0f, next->hint, {} });
+            // Active region: every step with its state, the current one with its hint
+            for (const QuestStep& step : region.steps) {
+                if (&step == next) {
+                    lines.push_back({ textSize, IM_COL32(255, 225, 100, 255), pad, nullptr,
+                                      std::string("> ") + step.title + "   (aktiv)" });
+                    lines.push_back({ textSize, IM_COL32(190, 190, 200, 255), pad * 2.0f, step.hint, {} });
+                } else if (StepDone(step)) {
+                    lines.push_back(
+                        { textSize, IM_COL32(120, 200, 120, 255), pad, nullptr, std::string("[x] ") + step.title });
+                } else {
+                    lines.push_back(
+                        { textSize, IM_COL32(150, 150, 160, 255), pad, nullptr, std::string("[  ] ") + step.title });
+                }
+            }
         } else if (next != nullptr) {
             lines.push_back({ textSize, IM_COL32(170, 170, 180, 255), pad, nullptr, std::string("> ") + next->title });
         }
